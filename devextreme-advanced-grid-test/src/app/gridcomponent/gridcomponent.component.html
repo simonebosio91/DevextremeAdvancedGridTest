@@ -1,0 +1,400 @@
+<h1>CIAOOOOOOOOO</h1>
+<div class="demo-container" style="text-align:right" *ngIf="loaded">
+    <dx-data-grid id="gridContainer"
+                  (onEditorPreparing)="onEditorPreparing($event)"
+                  (onRowExpanding)="onRowExpanding($event)"
+                  #grigliaDati
+                  (onRowPrepared)="onRowPrepared($event)"
+                  (onCellPrepared)="onCellPrepared($event)"
+                  [dataSource]="datasource.data"
+                  [showBorders]="true"
+                  [allowColumnResizing]="true"
+                  [allowColumnReordering]="true"
+                  [rowAlternationEnabled]="false"
+                  [height]="gridHeight != null ? gridHeight : null"
+                  [remoteOperations]="true"
+                  [showColumnLines]="false"
+                  [noDataText]="noDataText"
+                  [showRowLines]="true"
+                  hoverStateEnabled="true"
+                  [masterDetail]="{ enabled: strutturaGriglia.Schema.Relations.length>0, template: 'detail' }"
+                  columnResizingMode="widget">
+
+        <dxo-column-chooser [enabled]="false" mode="select"></dxo-column-chooser>
+        <dxo-paging [pageSize]="50"></dxo-paging>
+        <dxo-pager
+            [visible]="true"
+            [showPageSizeSelector]="false"
+            [showInfo]="true">
+        </dxo-pager>
+        <dxo-load-panel [enabled]="true"></dxo-load-panel>
+        <dxo-sorting mode="multiple"></dxo-sorting>
+        <dxo-scrolling mode="Standard" useNative="false"></dxo-scrolling>
+        <dxo-filter-row [visible]="true"></dxo-filter-row>
+        <dxo-header-filter [visible]="false"></dxo-header-filter>
+        <dxo-filter-panel [visible]="false"></dxo-filter-panel>
+        <dxo-selection mode="multiple" showCheckBoxesMode="always"
+                       [allowSelectAll]="false"
+                       selectAllMode = "allPages"
+                       [deferred]="false"></dxo-selection>
+
+        <dxi-column dataType="object" [width]="36" cellTemplate="commandTemplate"
+                    [showInColumnChooser]="false"
+                    [allowResizing]="false" [allowHiding]="false" name="colCommand"
+                    [allowReordering]="false"></dxi-column>
+
+        <dxi-column *ngFor="let colonna of strutturaGriglia.Schema.Columns"
+                    dataField="{{colonna.Name}}"
+                    dataType="{{colonna.GridDataType | lowercase}}"
+                    caption="{{colonna.Title}}"
+                    [format]="colonna.FormatMaskAdv != null ? colonna.FormatMaskAdv : colonna.FormatMask"
+                    [width]="colonna.DataType == evoDataTypes.Immagine || colonna.DataType == evoDataTypes.Colore ? 36 :
+                                                                colonna.Width > 0 ? colonna.Width : undefined "
+                    [visible]="colonna.Width >= 0"
+                    [showInColumnChooser]="colonna.Width != -1"
+                    [alignment]="colonna.HAlign == -1 ? 'left' : colonna.HAlign == 0 ? 'center' : 'right'"
+
+                    [allowHeaderFiltering]="((colonna.DataType == evoDataTypes.Colore || colonna.DataType == evoDataTypes.Immagine) && colonna.SearchEnabled)"
+                    [allowFiltering]="colonna.DataType != evoDataTypes.Immagine && colonna.SearchEnabled"
+                    [allowResizing]="colonna.DataType != evoDataTypes.Immagine || (colonna.DataType==evoDataTypes.Immagine && colonna.Type == evoTypes.NotesPlaceholder)"
+
+                    [allowSorting]="!(colonna.DataType == evoDataTypes.Colore || colonna.DataType == evoDataTypes.Immagine)"
+                    [fixed]="(colonna.Type == evoTypes.DocumentPlaceholder || colonna.Type == evoTypes.AttachmentPlaceholder)"
+                    [allowReordering]="colonna.Type != evoTypes.DocumentPlaceholder && colonna.Type != evoTypes.AttachmentPlaceholder"
+                    [headerCellTemplate]="colonna.DataType == evoDataTypes.Immagine ?
+                                                                                            colonna.Type == evoTypes.DocumentPlaceholder ? 'headerDocTemplate'
+                                                                                            : colonna.Type == evoTypes.AttachmentPlaceholder ? 'headerAttachTemplate'
+                                                                                            : colonna.Type == evoTypes.NotesPlaceholder ? 'headerNoteTemplate'
+                                                                                            : null
+                                                                                        : null"
+                    [cellTemplate]="colonna.DataType == evoDataTypes.Colore ?
+                                                                                    'cellListColorTemplate'
+                                                                                    : colonna.DataType == evoDataTypes.ColoreConTesto ? 'cellListColorWithTextTemplate'
+                                                                                    : colonna.DataType == evoDataTypes.Immagine ?
+                                                                                        colonna.Type == evoTypes.DocumentPlaceholder ? 'cellTemplate'
+                                                                                        : colonna.Type == evoTypes.AttachmentPlaceholder ? 'cellAttachTemplate'
+                                                                                        : colonna.Type == evoTypes.NotesPlaceholder ? 'cellNoteTemplate'
+                                                                                        : null
+                                                                                    : colonna.Type == evoTypes.List ? 'cellListTextTemplate'
+                                                                                    : colonna.MultiSelection == true ? 'tagTemplate'
+                                                                                : null"
+                    [calculateCellValue]="colonna.DataType == evoDataTypes.Colore ? estraiListaColore
+                                                                                        : colonna.DataType == evoDataTypes.ColoreConTesto ? estraiListaColoreConTesto
+                                                                                        : colonna.DataType == evoDataTypes.Immagine ?
+                                                                                            colonna.Type == evoTypes.DocumentPlaceholder ? estraiEstensione
+                                                                                            : colonna.Type == evoTypes.AttachmentPlaceholder ? estraiValoreAllegati
+                                                                                            : colonna.Type == evoTypes.NotesPlaceholder ? estraiValoreNote
+                                                                                            : null
+                                                                                        : colonna.Type == evoTypes.List ? estraiListaTesto
+                                                                                    : colonna.GridDataType == 'date' ? estraiValoreInDatatime : null"
+
+        >
+        </dxi-column>
+
+
+        <div *dxTemplate="let datiRow of 'detail'">
+            <div style="margin-left: 25px">
+                <dx-tab-panel #tabPanelFirstLevel
+                              [dataSource]="datiRow.data.Relations"
+                              [animationEnabled]="true"
+                              [showNavButtons]="true"
+                              (onContentReady)="tabContentReady($event,datiRow)"
+                              (onSelectionChanged)="cambioTabSubgridFirstLevel($event,datiRow)"
+                              [selectedIndex]="-1"
+                              [swipeEnabled]="true">
+                    <div *dxTemplate="let singolo of 'title'">
+                        <span>({{singolo.NumRecs}}) {{singolo.ViewTitle}}</span>
+                        <i (click)="openSearchInSubgrid(datiRow.data.DsRecordId, singolo.SubViewKey)"
+                           class="dx-icon dx-icon-find"
+                        ></i>
+                        <i (click)="doOpenSubGridFirstLevel(singolo,datiRow)"
+                           class="dx-icon dx-icon-pulldown"
+                        ></i>
+                        <i                           class="dx-icon dx-icon-more"
+                        ></i>
+                    </div>
+                    <div *dxTemplate="let singolo of 'item'">
+                        <div class="employeeInfo" style="padding: 0px">
+                                                    <span *ngIf="getLoadedSubGrid(datiRow.data.DsRecordId, singolo.SubViewKey) == null"
+                                                          style="display: inline-flex;justify-content: center;align-items: center;white-space: nowrap;">
+                                                        <mat-icon style="color: #fc6234; margin-right: 16px">timer</mat-icon>
+                                                    </span>
+                            <div *ngIf="getLoadedSubGrid(datiRow.data.DsRecordId, singolo.SubViewKey) != null">
+                                <ng-container *ngTemplateOutlet="recursiveList; context:{ $implicit: (getLoadedSubGrid(datiRow.data.DsRecordId, singolo.SubViewKey)) }"></ng-container>
+                            </div>
+                        </div>
+                    </div>
+                </dx-tab-panel>
+            </div>
+
+        </div>
+
+        <div *dxTemplate="let d of 'commandTemplate'">
+            <div style="text-align:center;cursor: pointer;">
+                <mat-icon style="cursor: hand"  (click)="openMenu($event,d)">menu
+                </mat-icon>
+            </div>
+        </div>
+        <div *dxTemplate="let d of 'fastCommandTemplate'">
+            <div style="text-align:center;cursor: pointer;">
+                <mat-icon style="cursor: hand" (click)="eseguiComandoRapido($event,d)">star_half
+                </mat-icon>
+            </div>
+        </div>
+        <div *dxTemplate="let d of 'headerDocTemplate'">
+            <div style="text-align:center;" title="{{d.column.caption}}">
+                <img class="centerIconGrid"
+                     [src]="estraiEstensioneHeader(d.column)"
+                     onError="this.src='assets/icons/document/NULL.svg'"
+                     height="16px" width="16px"/>
+            </div>
+        </div>
+        <div *dxTemplate="let d of 'headerAttachTemplate'">
+            <div style="text-align:center;" title="{{d.column.caption}}">
+                <img class="centerIconGrid"
+                     [src]="estraiAllegatiHeader()" height="24"
+                     width="24"/>
+            </div>
+        </div>
+        <div *dxTemplate="let d of 'headerNoteTemplate'">
+                                    <span
+                                        style="text-align:center; display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;"
+                                        title="{{d.column.caption}}" matTooltip="{{d.data}}">{{d.column.caption}}</span>
+        </div>
+        <div *dxTemplate="let d of 'cellListColorTemplate'" style="vertical-align: middle; width: 20px;height: 20px;">
+            <span *ngIf="d.value != -1" matTooltip="{{d.data[d.column.dataField][d.column.dataField + '_DisplayText']}}" [ngStyle]="creaPuntoColorato(d.value)"></span>
+            <span *ngIf="d.value == -1">{{d.data[d.column.dataField][d.column.dataField + '_DisplayText']}}</span>
+        </div>
+        <div *dxTemplate="let d of 'cellListColorWithTextTemplate'">
+                                    <span [style.background-color]="d.value.Background" [style.color]="d.value.Foreground" style="padding: 4px;border-radius: 5px;">
+                                        {{d.data[d.column.dataField][d.column.dataField + '_DisplayText']}}
+                                    </span>
+        </div>
+        <div *dxTemplate="let d of 'cellListTextTemplate'">
+            <span>{{d.value}}</span>
+        </div>
+        <div *dxTemplate="let d of 'cellTemplate'">
+            <img *ngIf="d.value != ''"
+                 class="centerIconGrid"
+                 [src]="d.value"
+                 onError="this.src='assets/icons/document/NULL.svg'"
+                 height="16px" width="16px"/>
+        </div>
+        <div *dxTemplate = "let d of 'tagTemplate'">
+            <ng-container *ngIf="d.value != null && d.value != ''">
+                                        <span *ngFor="let val of d.value.split(',')" class='tag-box-design'>
+                                            {{val}}
+                                        </span>
+            </ng-container>
+        </div>
+        <div *dxTemplate="let d of 'cellAttachTemplate'">
+            <img *ngIf="d.value != ''" (click)="openAttach(d)"
+                 class="centerIconGrid"
+                 [src]="d.value" height="24"
+                 width="24"/>
+        </div>
+        <div *dxTemplate="let d of 'cellNoteTemplate'">
+            <img *ngIf="d.value != ''" (click)="openNote(d)"
+                 class="centerIconGrid"
+                 [src]="d.value" height="24"
+                 width="24"/>
+        </div>
+    </dx-data-grid>
+</div>
+
+
+
+
+<ng-template #recursiveList let-datiRow>
+    <dx-data-grid #grigliaChild
+                  (onRowExpanding)="onRowExpandingChild($event)"
+                  (onRowPrepared)="onRowPrepared($event)"
+                  (onCellPrepared)="onCellPreparedChild($event)"
+                  [dataSource]="datiRow.Data"
+                  [showBorders]="true"
+                  [allowColumnResizing]="true"
+                  [allowColumnReordering]="true"
+                  [rowAlternationEnabled]="false"
+                  [remoteOperations]="true"
+                  [showColumnLines]="false"
+                  [showRowLines]="true"
+                  [elementAttr]="{id: datiRow.GridId }"
+                  hoverStateEnabled="true"
+                  [columnAutoWidth]="!datiRow.EnableAutoWidthColumn"
+                  [masterDetail]="{ enabled: datiRow.Relations.length > 0, template: 'detailAdvanced' }"
+                  columnResizingMode="widget">
+
+        <dxo-column-chooser [enabled]="false" mode="select"></dxo-column-chooser>
+        <dxo-paging [pageSize]="10"></dxo-paging>
+        <dxo-pager
+            [visible]="true"
+            [showPageSizeSelector]="false"
+            [showInfo]="true">
+        </dxo-pager>
+        <dxo-load-panel [enabled]="true"></dxo-load-panel>
+        <dxo-sorting mode="multiple"></dxo-sorting>
+        <dxo-scrolling mode="Standard" useNative="false"></dxo-scrolling>
+        <dxo-filter-row [visible]="datiRow.ShowSearch"></dxo-filter-row>
+        <dxo-header-filter [visible]="false"></dxo-header-filter>
+        <dxo-filter-panel [visible]="false"></dxo-filter-panel>
+        <dxo-selection mode="multiple" showCheckBoxesMode="always"></dxo-selection>
+        <dxi-column dataType="object" [width]="36" cellTemplate="commandTemplate"
+                    [allowResizing]="false" [allowHiding]="false" name="colCommand"
+                    [allowReordering]="false"></dxi-column>
+
+        <dxi-column *ngFor="let colonna of datiRow.Struct"
+                    dataField="{{colonna.Name}}"
+                    dataType="{{colonna.GridDataType | lowercase}}"
+                    caption="{{colonna.Title}}"
+                    [format]="colonna.FormatMaskAdv != null ? colonna.FormatMaskAdv : colonna.FormatMask"
+
+                    [width]="colonna.DataType == evoDataTypes.Immagine || colonna.DataType == evoDataTypes.Colore ? colonna.Width :
+                                                                datiRow.EnableAutoWidthColumn ? undefined  :
+                                                                colonna.Width > 0 ? colonna.Width : undefined "
+
+                    [visible]="colonna.Width >= 0"
+                    [showInColumnChooser]="colonna.Width != -1"
+                    [alignment]="colonna.HAlign == -1 ? 'left' : colonna.HAlign == 0 ? 'center' : 'right'"
+
+                    [allowHeaderFiltering]="((colonna.DataType == evoDataTypes.Colore || colonna.DataType == evoDataTypes.Immagine) && colonna.SearchEnabled)"
+                    [allowFiltering]="colonna.DataType != evoDataTypes.Immagine && colonna.SearchEnabled"
+                    [allowResizing]="colonna.DataType != evoDataTypes.Immagine || (colonna.DataType==evoDataTypes.Immagine && colonna.Type == evoTypes.NotesPlaceholder)"
+
+                    [allowSorting]="!(colonna.DataType == evoDataTypes.Colore || colonna.DataType == evoDataTypes.Immagine)"
+                    [fixed]="(colonna.Type == evoTypes.DocumentPlaceholder || colonna.Type == evoTypes.AttachmentPlaceholder)"
+                    [allowReordering]="colonna.Type != evoTypes.DocumentPlaceholder && colonna.Type != evoTypes.AttachmentPlaceholder"
+                    [headerCellTemplate]="colonna.DataType == evoDataTypes.Immagine ?
+                                                                                            colonna.Type == evoTypes.DocumentPlaceholder ? 'headerDocTemplate'
+                                                                                            : colonna.Type == evoTypes.AttachmentPlaceholder ? 'headerAttachTemplate'
+                                                                                            : colonna.Type == evoTypes.NotesPlaceholder ? 'headerNoteTemplate'
+                                                                                            : null
+                                                                                        : null"
+                    [cellTemplate]="colonna.DataType == evoDataTypes.Colore ?
+                                                                                    'cellListColorTemplate'
+                                                                                    : colonna.DataType == evoDataTypes.ColoreConTesto ? 'cellListColorWithTextTemplate'
+                                                                                    : colonna.DataType == evoDataTypes.Immagine ?
+                                                                                        colonna.Type == evoTypes.DocumentPlaceholder ? 'cellTemplate'
+                                                                                        : colonna.Type == evoTypes.AttachmentPlaceholder ? 'cellAttachTemplate'
+                                                                                        : colonna.Type == evoTypes.NotesPlaceholder ? 'cellNoteTemplate'
+                                                                                        : null
+                                                                                    : colonna.Type == evoTypes.List ? 'cellListTextTemplate'
+                                                                                    : colonna.MultiSelection == true ? 'tagTemplate'
+                                                                                : null"
+                    [calculateCellValue]="colonna.DataType == evoDataTypes.Colore  ? estraiListaColore
+                                                                                        : colonna.DataType == evoDataTypes.ColoreConTesto ? estraiListaColoreConTesto
+                                                                                        : colonna.DataType == evoDataTypes.Immagine ?
+                                                                                            colonna.Type == evoTypes.DocumentPlaceholder ? estraiEstensione
+                                                                                            : colonna.Type == evoTypes.AttachmentPlaceholder ? estraiValoreAllegati
+                                                                                            : colonna.Type == evoTypes.NotesPlaceholder ? estraiValoreNote
+                                                                                            : null
+                                                                                        : colonna.Type == evoTypes.List ? estraiListaTesto
+                                                                                    : colonna.GridDataType == 'date' ? estraiValoreInDatatime : null"
+
+        >
+        </dxi-column>
+
+        <div *dxTemplate="let datiSubRow of 'detailAdvanced'">
+            <div style="margin-left: 25px">
+<!--                <dx-tab-panel [dataSource]="datiSubRow.data.Relations"-->
+<!--                              [animationEnabled]="true"-->
+<!--                              [showNavButtons]="true"-->
+<!--                              (onContentReady)="tabContentReadyDownLevel($event,datiSubRow, datiRow.DsRecordIdMaster, datiRow.Subkey)"-->
+<!--                              (onSelectionChanged)="cambioTabSubgridDownLevel($event,datiSubRow, datiRow.DsRecordIdMaster, datiRow.Subkey)"-->
+<!--                              [selectedIndex]="-1"-->
+<!--                              [swipeEnabled]="true">-->
+<!--                    <div *dxTemplate="let singolo of 'title'">-->
+<!--                        <span>({{singolo.NumRecs}}) {{singolo.ViewTitle}}</span>-->
+<!--                        <i (click)="openSearchInSubgrid(datiRow.GridId, datiSubRow.data.DsRecordId, singolo.SubViewKey)"-->
+<!--                           matTooltip="{{'home.lblSearchSubgrid' | translate}}"-->
+<!--                           class="dx-icon dx-icon-find"-->
+<!--                        ></i>-->
+<!--                        <i (click)="doOpenSubGridDownLevel(singolo, datiSubRow, datiRow.DsRecordIdMaster, datiRow.Subkey)"-->
+<!--                           matTooltip="{{'home.lblRefreshSubgrid' | translate}}"-->
+<!--                           class="dx-icon dx-icon-pulldown"-->
+<!--                        ></i>-->
+<!--                        <i (click)="openMenuOtherCommandsInSubgrid($event, datiRow.GridId, datiSubRow.data.DsRecordId, singolo.SubViewKey)"-->
+<!--                           matTooltip="{{'home.lblOtherCommandsSubgrid' | translate}}"-->
+<!--                           class="dx-icon dx-icon-more"-->
+<!--                        ></i>-->
+<!--                    </div>-->
+<!--                    <div *dxTemplate="let singolo of 'item'">-->
+<!--                        <div class="employeeInfo" style="padding: 0px">-->
+<!--                            <span *ngIf="getLoadedSubGrid(datiRow.GridId, datiSubRow.data.DsRecordId, singolo.SubViewKey)  == null"-->
+<!--                                  style="display: inline-flex;justify-content: center;align-items: center;white-space: nowrap;">-->
+<!--                                <mat-icon style="color: #fc6234; margin-right: 16px">timer</mat-icon>{{'home.lblWaitSubgrid' | translate}}-->
+<!--                            </span>-->
+<!--                            <div *ngIf="getLoadedSubGrid(datiRow.GridId, datiSubRow.data.DsRecordId, singolo.SubViewKey) != null">-->
+<!--                                <ng-container *ngTemplateOutlet="recursiveList; context:{ $implicit: (getLoadedSubGrid(datiRow.GridId, datiSubRow.data.DsRecordId, singolo.SubViewKey)) }"></ng-container>-->
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </dx-tab-panel>-->
+            </div>
+        </div>
+
+
+
+        <div *dxTemplate="let d of 'commandTemplate'">
+            <div style="text-align:center;cursor: pointer;" title="{{'home.btnCardCommands' | translate}}">
+                <mat-icon style="cursor: hand">menu
+                </mat-icon>
+            </div>
+        </div>
+        <div *dxTemplate="let d of 'headerDocTemplate'">
+            <div style="text-align:center;" title="{{d.column.caption}}">
+                <img class="centerIconGrid"
+                     [src]="estraiEstensioneHeaderSubgrid(d.column,datiRow.GridId, datiRow.DsRecordIdMaster, datiRow.Subkey)"
+                     onError="this.src='assets/icons/document/NULL.svg'"
+                     height="16px" width="16px"/>
+            </div>
+        </div>
+        <div *dxTemplate="let d of 'headerAttachTemplate'">
+            <div style="text-align:center;" title="{{d.column.caption}}">
+                <mat-icon>attach_file</mat-icon>
+            </div>
+        </div>
+        <div *dxTemplate="let d of 'headerNoteTemplate'">
+            <!--<div style="text-align:center;" title="{{d.column.caption}}"><mat-icon matTooltip="{{d.data}}" style="cursor: hand;">chat</mat-icon></div>-->
+            <span
+                style="text-align:center; display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;"
+                title="{{d.column.caption}}" matTooltip="{{d.data}}">{{d.column.caption}}</span>
+        </div>
+        <div *dxTemplate="let d of 'cellListColorTemplate'" style="vertical-align: middle; width: 20px;height: 20px;">
+            <span *ngIf="d.value != -1" matTooltip="{{d.data[d.column.dataField][d.column.dataField + '_DisplayText']}}" [ngStyle]="creaPuntoColorato(d.value)"></span>
+            <span *ngIf="d.value == -1">{{d.data[d.column.dataField][d.column.dataField + '_DisplayText']}}</span>
+        </div>
+        <div *dxTemplate="let d of 'cellListColorWithTextTemplate'">
+            <span [style.background-color]="d.value.Background" [style.color]="d.value.Foreground" style="padding: 4px;border-radius: 5px;" >
+                {{d.data[d.column.dataField][d.column.dataField + '_DisplayText']}}
+            </span>
+        </div>
+        <div *dxTemplate="let d of 'cellListTextTemplate'">
+            <span>{{d.value}}</span>
+        </div>
+        <div *dxTemplate="let d of 'cellTemplate'">
+            <img *ngIf="d.value != ''"
+                 class="centerIconGrid"
+                 alt="{{'home.gridHeaderAltDocument' | translate}}"
+                 [src]="d.value"
+                 onError="this.src='assets/icons/document/NULL.svg'"
+                 height="16px" width="16px"/>
+        </div>
+        <div *dxTemplate = "let d of 'tagTemplate'">
+            <ng-container *ngIf="d.value != null && d.value != ''">
+                <span *ngFor="let val of d.value.split(',')" class='tag-box-design'>
+                    {{val}}
+                </span>
+            </ng-container>
+        </div>
+        <div *dxTemplate="let d of 'cellAttachTemplate'">
+            <img *ngIf="d.value != ''"  class="centerIconGrid"
+                 alt="{{'home.gridHeaderAltAttach' | translate}}" [src]="d.value" height="24"
+                 width="24"/>
+        </div>
+        <div *dxTemplate="let d of 'cellNoteTemplate'">
+            <img *ngIf="d.value != ''" class="centerIconGrid"
+                 alt="{{'home.gridHeaderAltNote' | translate}}" [src]="d.value" height="24"
+                 width="24"/>
+        </div>
+    </dx-data-grid>
+</ng-template>

@@ -1,70 +1,50 @@
-import { AppComponent } from './app.component';
-
 import { NgModule } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import {BrowserModule, BrowserTransferStateModule} from '@angular/platform-browser';
 
+import { AppRoutingModule } from './app-routing.module';
+import { AppComponent } from './app.component';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { GridcomponentComponent } from './gridcomponent/gridcomponent.component';
 import {
-  DxButtonModule,
-  DxDataGridModule,
-  DxTabPanelModule,
-  DxSelectBoxModule,
-  DxLoadPanelModule,
+  DxActionSheetModule, DxButtonModule,
+  DxContextMenuModule, DxDataGridModule,
   DxDateBoxModule,
-  DxValidatorModule,
-  DxContextMenuModule, DxActionSheetModule, DxTagBoxModule
-} from 'devextreme-angular';
-import { DxReportViewerModule } from 'devexpress-reporting-angular';
-import { AngularDraggableModule } from 'angular2-draggable';
-
-import {MatChipsModule} from '@angular/material/chips';
-import {MatTabsModule} from '@angular/material/tabs';
-import {MatIconModule} from '@angular/material/icon';
-import {MatButtonModule} from '@angular/material/button';
-import {MatMenuModule} from '@angular/material/menu';
-import {MatDialogModule} from '@angular/material/dialog';
-import {MatBadgeModule} from '@angular/material/badge';
-import {MatDividerModule} from '@angular/material/divider';
-import {MatTooltipModule} from '@angular/material/tooltip';
-import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
-import {MatProgressBarModule} from '@angular/material/progress-bar';
-import {CommonModule} from '@angular/common';
-import {CookieService} from 'ngx-cookie-service';
-
+  DxLoadPanelModule, DxTabPanelModule,
+  DxTagBoxModule
+} from "devextreme-angular";
+import {MatChipsModule} from "@angular/material/chips";
+import {MatProgressBarModule} from "@angular/material/progress-bar";
+import {MatTooltipModule} from "@angular/material/tooltip";
+import {MatButtonModule} from "@angular/material/button";
+import {MatIconModule} from "@angular/material/icon";
+import {MatTabsModule} from "@angular/material/tabs";
 
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
+    GridcomponentComponent
   ],
   imports: [
-    TranslateModule,
+    BrowserTransferStateModule,
+    BrowserModule,
+    AppRoutingModule,
+    BrowserAnimationsModule,
     MatTabsModule,
     DxButtonModule,
     DxDataGridModule,
     DxTabPanelModule,
-    DxSelectBoxModule,
     MatIconModule,
     MatButtonModule,
-    MatMenuModule,
-    MatDialogModule,
-    MatBadgeModule,
-    MatDividerModule,
     MatTooltipModule,
     DxLoadPanelModule,
     DxDateBoxModule,
-    DxValidatorModule,
-    MatProgressSpinnerModule,
     DxContextMenuModule,
-    AngularDraggableModule,
-    DxReportViewerModule,
     DxActionSheetModule,
     MatProgressBarModule,
     MatChipsModule,
-    DxTagBoxModule,
-    CommonModule
+    DxTagBoxModule
   ],
-  providers: [
-      CookieService
-  ],
+  providers: [],
   bootstrap: [AppComponent]
 })
 export class AppModule { }
