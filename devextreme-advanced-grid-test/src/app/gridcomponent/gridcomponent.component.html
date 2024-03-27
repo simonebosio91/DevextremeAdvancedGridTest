@@ -1,4 +1,9 @@
-<h1>CIAOOOOOOOOO</h1>
+<div class="example-button-row" style="margin-top: 16px">
+  <button style="margin: 16px" mat-raised-button (click)="selectAll()">SELECT ROWS</button>
+  <button  style="margin: 16px" mat-raised-button  (click)="unselectAll()">UNSELECT ROWS</button>
+  <button style="margin: 16px"  mat-raised-button (click)="exportSelectedData()">EXPORT</button>
+</div>
+
 <div class="demo-container" style="text-align:right" *ngIf="loaded">
     <dx-data-grid id="gridContainer"
                   (onEditorPreparing)="onEditorPreparing($event)"
@@ -6,6 +11,8 @@
                   #grigliaDati
                   (onRowPrepared)="onRowPrepared($event)"
                   (onCellPrepared)="onCellPrepared($event)"
+                  (onContentReady)="onContentReady($event)"
+                  (onDisposing)="onDisposing($event)"
                   [dataSource]="datasource.data"
                   [showBorders]="true"
                   [allowColumnResizing]="true"
@@ -45,15 +52,10 @@
 
         <dxi-column *ngFor="let colonna of strutturaGriglia.Schema.Columns"
                     dataField="{{colonna.Name}}"
-                    dataType="{{colonna.GridDataType | lowercase}}"
                     caption="{{colonna.Title}}"
-                    [format]="colonna.FormatMaskAdv != null ? colonna.FormatMaskAdv : colonna.FormatMask"
                     [width]="colonna.DataType == evoDataTypes.Immagine || colonna.DataType == evoDataTypes.Colore ? 36 :
                                                                 colonna.Width > 0 ? colonna.Width : undefined "
                     [visible]="colonna.Width >= 0"
-                    [showInColumnChooser]="colonna.Width != -1"
-                    [alignment]="colonna.HAlign == -1 ? 'left' : colonna.HAlign == 0 ? 'center' : 'right'"
-
                     [allowHeaderFiltering]="((colonna.DataType == evoDataTypes.Colore || colonna.DataType == evoDataTypes.Immagine) && colonna.SearchEnabled)"
                     [allowFiltering]="colonna.DataType != evoDataTypes.Immagine && colonna.SearchEnabled"
                     [allowResizing]="colonna.DataType != evoDataTypes.Immagine || (colonna.DataType==evoDataTypes.Immagine && colonna.Type == evoTypes.NotesPlaceholder)"
@@ -221,7 +223,6 @@
                   [elementAttr]="{id: datiRow.GridId }"
                   hoverStateEnabled="true"
                   [columnAutoWidth]="!datiRow.EnableAutoWidthColumn"
-                  [masterDetail]="{ enabled: datiRow.Relations.length > 0, template: 'detailAdvanced' }"
                   columnResizingMode="widget">
 
         <dxo-column-chooser [enabled]="false" mode="select"></dxo-column-chooser>
@@ -293,49 +294,11 @@
         >
         </dxi-column>
 
-        <div *dxTemplate="let datiSubRow of 'detailAdvanced'">
-            <div style="margin-left: 25px">
-<!--                <dx-tab-panel [dataSource]="datiSubRow.data.Relations"-->
-<!--                              [animationEnabled]="true"-->
-<!--                              [showNavButtons]="true"-->
-<!--                              (onContentReady)="tabContentReadyDownLevel($event,datiSubRow, datiRow.DsRecordIdMaster, datiRow.Subkey)"-->
-<!--                              (onSelectionChanged)="cambioTabSubgridDownLevel($event,datiSubRow, datiRow.DsRecordIdMaster, datiRow.Subkey)"-->
-<!--                              [selectedIndex]="-1"-->
-<!--                              [swipeEnabled]="true">-->
-<!--                    <div *dxTemplate="let singolo of 'title'">-->
-<!--                        <span>({{singolo.NumRecs}}) {{singolo.ViewTitle}}</span>-->
-<!--                        <i (click)="openSearchInSubgrid(datiRow.GridId, datiSubRow.data.DsRecordId, singolo.SubViewKey)"-->
-<!--                           matTooltip="{{'home.lblSearchSubgrid' | translate}}"-->
-<!--                           class="dx-icon dx-icon-find"-->
-<!--                        ></i>-->
-<!--                        <i (click)="doOpenSubGridDownLevel(singolo, datiSubRow, datiRow.DsRecordIdMaster, datiRow.Subkey)"-->
-<!--                           matTooltip="{{'home.lblRefreshSubgrid' | translate}}"-->
-<!--                           class="dx-icon dx-icon-pulldown"-->
-<!--                        ></i>-->
-<!--                        <i (click)="openMenuOtherCommandsInSubgrid($event, datiRow.GridId, datiSubRow.data.DsRecordId, singolo.SubViewKey)"-->
-<!--                           matTooltip="{{'home.lblOtherCommandsSubgrid' | translate}}"-->
-<!--                           class="dx-icon dx-icon-more"-->
-<!--                        ></i>-->
-<!--                    </div>-->
-<!--                    <div *dxTemplate="let singolo of 'item'">-->
-<!--                        <div class="employeeInfo" style="padding: 0px">-->
-<!--                            <span *ngIf="getLoadedSubGrid(datiRow.GridId, datiSubRow.data.DsRecordId, singolo.SubViewKey)  == null"-->
-<!--                                  style="display: inline-flex;justify-content: center;align-items: center;white-space: nowrap;">-->
-<!--                                <mat-icon style="color: #fc6234; margin-right: 16px">timer</mat-icon>{{'home.lblWaitSubgrid' | translate}}-->
-<!--                            </span>-->
-<!--                            <div *ngIf="getLoadedSubGrid(datiRow.GridId, datiSubRow.data.DsRecordId, singolo.SubViewKey) != null">-->
-<!--                                <ng-container *ngTemplateOutlet="recursiveList; context:{ $implicit: (getLoadedSubGrid(datiRow.GridId, datiSubRow.data.DsRecordId, singolo.SubViewKey)) }"></ng-container>-->
-<!--                            </div>-->
-<!--                        </div>-->
-<!--                    </div>-->
-<!--                </dx-tab-panel>-->
-            </div>
-        </div>
 
 
 
         <div *dxTemplate="let d of 'commandTemplate'">
-            <div style="text-align:center;cursor: pointer;" title="{{'home.btnCardCommands' | translate}}">
+            <div style="text-align:center;cursor: pointer;" >
                 <mat-icon style="cursor: hand">menu
                 </mat-icon>
             </div>
@@ -374,7 +337,6 @@
         <div *dxTemplate="let d of 'cellTemplate'">
             <img *ngIf="d.value != ''"
                  class="centerIconGrid"
-                 alt="{{'home.gridHeaderAltDocument' | translate}}"
                  [src]="d.value"
                  onError="this.src='assets/icons/document/NULL.svg'"
                  height="16px" width="16px"/>
@@ -388,12 +350,12 @@
         </div>
         <div *dxTemplate="let d of 'cellAttachTemplate'">
             <img *ngIf="d.value != ''"  class="centerIconGrid"
-                 alt="{{'home.gridHeaderAltAttach' | translate}}" [src]="d.value" height="24"
+                  [src]="d.value" height="24"
                  width="24"/>
         </div>
         <div *dxTemplate="let d of 'cellNoteTemplate'">
             <img *ngIf="d.value != ''" class="centerIconGrid"
-                 alt="{{'home.gridHeaderAltNote' | translate}}" [src]="d.value" height="24"
+                  [src]="d.value" height="24"
                  width="24"/>
         </div>
     </dx-data-grid>

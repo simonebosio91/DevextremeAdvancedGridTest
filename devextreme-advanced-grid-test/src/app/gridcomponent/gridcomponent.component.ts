@@ -1,8 +1,13 @@
-import {Component, isDevMode, OnInit} from '@angular/core';
+import {Component, isDevMode, OnInit, ViewChild} from '@angular/core';
 import {DatiService} from "../service/dati.service";
 import {EvoDataTypes, EvoTypes, relationsStruct} from "../model/griglia.model";
 import {StrutturaService} from "../service/struttura.service";
 import {UtilityService} from "../service/utility.service";
+import {DxDataGridComponent} from "devextreme-angular";
+import {Workbook} from "exceljs";
+
+import { exportDataGrid } from 'devextreme/excel_exporter';
+import {saveAs} from 'file-saver';
 
 @Component({
   selector: 'app-gridcomponent',
@@ -10,6 +15,8 @@ import {UtilityService} from "../service/utility.service";
   styleUrls: ['./gridcomponent.component.scss']
 })
 export class GridcomponentComponent implements OnInit {
+
+  @ViewChild(DxDataGridComponent, {static: false}) dataGrid: DxDataGridComponent;
 
   title = 'devextreme-advanced-grid-test';
 
@@ -26,29 +33,51 @@ export class GridcomponentComponent implements OnInit {
 
   loaded: boolean = false;
 
+  resizeObserver: ResizeObserver;
+
   constructor(
     private _strutturaService: StrutturaService,
     private _datiService: DatiService,
     private _utilityService: UtilityService
-  ) { }
+  ) {
+    this.resizeObserver = new ResizeObserver(() => {
+      this.dataGrid.instance.updateDimensions();
+    })
+  }
 
-  ngOnInit(): void {
+  async ngOnInit() {
     this.strutturaGriglia = this._strutturaService.estraiStruttura();
     this.datasource = this._datiService.estraiDatiPrincipale();
+
+    this.strutturaGriglia.Schema.Columns = await this._utilityService.ProcessGridStructByType(this.strutturaGriglia.Schema.Columns, '');
+
     this.relations = this.strutturaGriglia.Schema.Relations;
     this.loaded = true;
-    console.log(this.datasource);
   }
 
 
+  selectAll(){
+    this.dataGrid.instance.selectAll();
+  }
+  unselectAll(){
+    this.dataGrid.instance.deselectAll();
+  }
+
+  onContentReady(e:any){
+    const fixedTable = e.element.querySelector(".dx-datagrid-rowsview .dx-datagrid-content-fixed > table");
+    this.resizeObserver.unobserve(fixedTable);
+    this.resizeObserver.observe(fixedTable);
+  }
 
   onEditorPreparing(e: any): void {
       if (e.parentType == 'filterRow') {
       }
       if (e.parentType=='headerRow' && e.command=='select') {
           e.editorElement.remove();
-
       }
+  }
+  onDisposing(e){
+    this.resizeObserver.disconnect();
   }
   onRowExpanding(e: any) {
 
@@ -457,6 +486,114 @@ export class GridcomponentComponent implements OnInit {
           }
       }
   }
+
+
+  async exportSelectedData() {
+    let selectedRows = this.dataGrid.instance.getSelectedRowsData();
+    if (selectedRows.length == 0) {
+      await this.dataGrid.instance.selectAll();
+    }
+
+    await this.onExportingAsync();
+    const workbook = new Workbook();
+    const worksheet = workbook.addWorksheet('Main sheet');
+    exportDataGrid({
+      // @ts-ignore
+      component: this.dataGrid.instance,
+      worksheet: worksheet,
+      selectedRowsOnly: true,
+      autoFilterEnabled: true,
+      customizeCell: ({ gridCell, excelCell }) => {
+        if (gridCell.rowType === 'data') {
+          if(gridCell.column.cellTemplate == 'cellListColorTemplate' || gridCell.column.cellTemplate == 'cellListTextTemplate'){
+            let dtfield: string = gridCell.column.dataField;
+            let dtFieldDisplay: string = dtfield + '_DisplayText';
+            excelCell.value = gridCell.data[dtfield][dtFieldDisplay];
+          }
+        }
+      }
+    }).then(() => {
+      workbook.xlsx.writeBuffer()
+        .then(async function (buffer: BlobPart) {
+          saveAs(new Blob([buffer], {type: 'application/octet-stream'}), 'DataGrid.xlsx');
+        });
+      this.onExported();
+    });
+  };
+
+
+  onExportingAsync():Promise<boolean> {
+    return new Promise<boolean>((resolve => {
+      this.dataGrid.instance.beginUpdate();
+
+      let columnVisible = this.dataGrid.instance.getVisibleColumns();
+      for (var i = 0; i < columnVisible.length; i++) {
+        if (columnVisible[i].cellTemplate != null) {
+          switch (columnVisible[i].cellTemplate) {
+            case 'commandTemplate':{
+              // appoGriglie[index].instance.columnOption(columnVisible[i].visibleIndex, 'visible', false);
+              this.dataGrid.instance.columnOption('colCommand', 'visible', false);
+              break;
+            }
+            case 'cellListColorTemplate': {
+              break;
+            }
+            case 'cellTemplate': {
+              this.dataGrid.instance.columnOption(columnVisible[i].dataField, 'visible', false);
+              break;
+            }
+            case 'cellAttachTemplate': {
+              this.dataGrid.instance.columnOption(columnVisible[i].dataField, 'visible', false);
+              break;
+            }
+            case 'cellNoteTemplate': {
+              this.dataGrid.instance.columnOption(columnVisible[i].dataField, 'visible', false);
+              break;
+            }
+            case 'cellListTextTemplate': {
+              break;
+            }
+          }
+        }
+      }
+      resolve(true);
+    }))
+  }
+
+  onExported() {
+    let cols: any[] = this.dataGrid.instance.option('columns');
+    for (var i = 0; i < cols.length; i++) {
+      if (cols[i].cellTemplate != null) {
+        switch (cols[i].cellTemplate) {
+          case 'commandTemplate':{
+            this.dataGrid.instance.columnOption('colCommand', 'visible', true);
+            break;
+          }
+          case 'cellListColorTemplate': {
+            break;
+          }
+          case 'cellTemplate': {
+            this.dataGrid.instance.columnOption(cols[i].dataField, 'visible', true);
+            break;
+          }
+          case 'cellAttachTemplate': {
+            this.dataGrid.instance.columnOption(cols[i].dataField, 'visible', true);
+            break;
+          }
+          case 'cellNoteTemplate': {
+            this.dataGrid.instance.columnOption(cols[i].dataField, 'visible', true);
+            break;
+          }
+          case 'cellListTextTemplate': {
+            break;
+          }
+        }
+      }
+    }
+    this.dataGrid.instance.endUpdate();
+  }
+
+  protected readonly exportDataGrid = exportDataGrid;
 }
 
 
